@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: mrp_userdb  # Initial DB; others can be created manually or via init script
+    ports:
+      - "5432:5432"
+    networks:
+      - maintenance-net
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  user-service:
+    build: ./user-service/user-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/mrp_userdb #- host.docker.internal lets Docker containers talk to your host machine 
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      - postgres
+    networks:
+      - maintenance-net
+
+  maintenance-request-service:
+    build: ./maintenance_request_service/maintenance_request_service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/mrp_requestdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      - postgres
+    networks:
+      - maintenance-net
+
+  worker-service:
+    build: ./worker-service/worker-service
+    ports:
+      - "8082:8082"
+    networks:
+      - maintenance-net
+
+networks:
+  maintenance-net:
+
+volumes:
+  pgdata:
